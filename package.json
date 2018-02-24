@@ -1,0 +1,23 @@
+{
+  "name": "hanami",
+  "version": "0.0.0",
+  "description": "",
+  "main": "hanami.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keriwarr/hanami.git"
+  },
+  "author": "Keri Warr",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/keriwarr/hanami/issues"
+  },
+  "homepage": "https://github.com/keriwarr/hanami#readme",
+  "dependencies": {
+    "redux": "^3.7.2",
+    "reselect": "^3.0.1"
+  }
+}
