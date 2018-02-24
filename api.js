@@ -18,20 +18,63 @@ const {
   PLAYER_2,
   MOVE_1,
   MOVE_2,
+  MOVE_3,
+  MOVE_4,
   UNKNOWN
 } = require('./hanami.js')
 
 const getOtherPlayer = player => player === PLAYER_1 ? PLAYER_2 : PLAYER_1
 const setToArray = set => Array.from(set.values())
+const convertOwnMoves = moves => {
+  const copy = moves.slice()
+
+  if (copy[MOVE_1].self) {
+    copy[MOVE_1] = { self: setToArray(moves[MOVE_1].self) }
+  }
+
+  if (copy[MOVE_2].self) {
+    copy[MOVE_2] = { self: setToArray(moves[MOVE_2].self) }
+  }
+
+  if (copy[MOVE_3].self) {
+    copy[MOVE_3] = {
+      self: setToArray(moves[MOVE_3].self),
+      other: setToArray(moves[MOVE_3].other)
+    }
+  }
+
+  if (copy[MOVE_4].self) {
+    copy[MOVE_4] = {
+      self: setToArray(moves[MOVE_4].self),
+      other: setToArray(moves[MOVE_4].other)
+    }
+  }
+
+  return copy
+}
 const censorOpponentMoves = moves => {
   const copy = moves.slice()
 
   if (copy[MOVE_1].self) {
-    copy[MOVE_1] = { self: new Set([UNKNOWN]) }
+    copy[MOVE_1] = { self: [UNKNOWN] }
   }
 
   if (copy[MOVE_2].self) {
-    copy[MOVE_2] = { self: new Set([UNKNOWN, UNKNOWN]) }
+    copy[MOVE_2] = { self: [UNKNOWN, UNKNOWN] }
+  }
+
+  if (copy[MOVE_3].self) {
+    copy[MOVE_3] = {
+      self: setToArray(moves[MOVE_3].self),
+      other: setToArray(moves[MOVE_3].other)
+    }
+  }
+
+  if (copy[MOVE_4].self) {
+    copy[MOVE_4] = {
+      self: setToArray(moves[MOVE_4].self),
+      other: setToArray(moves[MOVE_4].other)
+    }
   }
 
   return copy
@@ -50,7 +93,7 @@ const simulation = (player1, player2) => {
     getRound: () => roundSelector(store.getState()),
     getTurn: () => turnSelector(store.getState()),
     getCharm: () => playerCharmSelectorCreator(playerID)(store.getState()),
-    getMoves: () => movesSelector(store.getState())[playerID],
+    getMoves: () => convertOwnMoves(movesSelector(store.getState())[playerID]),
     getOpponentHandSize: () => handSizeSelector(store.getState())(getOtherPlayer(playerID)),
     getOpponentAvaiableMoves: () => setToArray(availableMovesSelector(store.getState())(getOtherPlayer(playerID))),
     getOpponentCharm: () => playerCharmSelectorCreator(getOtherPlayer(playerID))(store.getState()),
