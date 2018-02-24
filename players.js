@@ -7,36 +7,54 @@ const {
 
 const basicPlayer = api => ({
   getMove: () => {
-    const availableMoves = api.getAvailableMoves()
     const hand = api.getHand()
-    const handArray = Array.from(hand.values())
+    const totalHand = api.getTotalHand()
+    const availableMoves = api.getAvailableMoves()
+    const favour = api.getFavour()
+    const round = api.getRound()
+    const turn = api.getTurn()
+    const charm = api.getCharm()
+    const moves = api.getMoves()
+    const opponentHandSize = api.getOpponentHandSize()
+    const opponentAvailableMoves = api.getOpponentAvaiableMoves()
+    const opponentCharm = api.getOpponentCharm()
+    const oppenentMoves = api.getOpponentMoves()
 
-    if (availableMoves.has(MOVE_1)) {
-      return new Set([handArray[0]])
+    // console.log('round:', round)
+    // console.log('turn:', turn)
+    // console.log('hand:', hand)
+    // console.log('total hand:', totalHand)
+    // console.log('available moves:', availableMoves)
+    // console.log('favour:', favour)
+    // console.log('charm:', charm)
+    // console.log('moves:', moves)
+    // console.log('opponent hand size:', opponentHandSize)
+    // console.log('opponent available moves:', opponentAvailableMoves)
+    // console.log('opponent charm:', opponentCharm)
+    // console.log('opponent moves:', oppenentMoves)
+    // console.log('----------------')
+
+    if (availableMoves.includes(MOVE_1)) {
+      return [hand[0]]
     }
 
-    if (availableMoves.has(MOVE_2)) {
-      return new Set([handArray[0], handArray[1]])
+    if (availableMoves.includes(MOVE_2)) {
+      return [hand[0], hand[1]]
     }
 
-    if (availableMoves.has(MOVE_3)) {
-      return new Set([handArray[0], handArray[1], handArray[2]])
+    if (availableMoves.includes(MOVE_3)) {
+      return [hand[0], hand[1], hand[2]]
     }
 
-    if (availableMoves.has(MOVE_4)) {
-      return new Set([handArray[0], handArray[1], handArray[2], handArray[3]])
+    if (availableMoves.includes(MOVE_4)) {
+      return [hand[0], hand[1], hand[2], hand[3]]
     }
-
-    return new Set()
   },
   getMove3Response: cards => {
-    const cardsArray = Array.from(cards.values())
-    return new Set([cardsArray[0]])
+    return cards[0]
   },
-  getMove4Response: cards => {
-    const cardsArray = Array.from(cards.values())
-    return new Set([cardsArray[0], cardsArray[1]])
-
+  getMove4Response: pairs => {
+    return pairs[0]
   }
 })
 

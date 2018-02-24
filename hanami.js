@@ -12,6 +12,7 @@ const { createSelector } = require('reselect')
  *                                  ENUMS                                   *
  ****************************************************************************/
 
+const UNKNOWN = -1
 const PURPLE_2 = 0
 const RED_2 = 1
 const YELLOW_2 = 2
@@ -29,7 +30,7 @@ const MOVE_3 = 2
 const MOVE_4 = 3
 
 /****************************************************************************
- *                                  CONSTS                                  *
+ *                                 CONSTANTS                                *
  ****************************************************************************/
 
 const DECK = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
@@ -402,9 +403,17 @@ exports.gameOverSelector = gameOverSelector
 exports.currentPlayerSelector = currentPlayerSelector
 exports.winnerSelector = winnerSelector
 exports.availableMovesSelector = availableMovesSelector
+exports.totalHandSelector = totalHandSelector
+exports.handSizeSelector = handSizeSelector
+exports.favourSelector = favourSelector
+exports.roundSelector = roundSelector
+exports.turnSelector = turnSelector
+exports.playerCharmSelectorCreator = playerCharmSelectorCreator
+exports.movesSelector = movesSelector
 
 exports.cardType = cardType
 
+exports.UNKNOWN = UNKNOWN
 exports.PURPLE_2 = PURPLE_2
 exports.RED_2 = RED_2
 exports.YELLOW_2 = YELLOW_2
