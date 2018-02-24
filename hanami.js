@@ -1,6 +1,4 @@
-const { createStore } = require('redux')
 const { createSelector } = require('reselect')
-const util = require('util')
 
 /**
  * IDEAS:
@@ -10,7 +8,10 @@ const util = require('util')
  * - what happnend on the nth round
  */
 
-const DECK = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+/****************************************************************************
+ *                                  ENUMS                                   *
+ ****************************************************************************/
+
 const PURPLE_2 = 0
 const RED_2 = 1
 const YELLOW_2 = 2
@@ -18,7 +19,60 @@ const BLUE_3 = 3
 const ORANGE_3 = 4
 const GREEN_4 = 5
 const BLACK_5 = 6
-const CARD_TYPE = card => {
+
+const PLAYER_1 = 0
+const PLAYER_2 = 1
+
+const MOVE_1 = 0
+const MOVE_2 = 1
+const MOVE_3 = 2
+const MOVE_4 = 3
+
+/****************************************************************************
+ *                                  CONSTS                                  *
+ ****************************************************************************/
+
+const DECK = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+const CARD_TYPES = [PURPLE_2, RED_2, YELLOW_2, BLUE_3, ORANGE_3, GREEN_4, BLACK_5]
+const CARD_VALUE_MAP = {
+  [PURPLE_2]: 2,
+  [RED_2]: 2,
+  [YELLOW_2]: 2,
+  [BLUE_3]: 3,
+  [ORANGE_3]: 3,
+  [GREEN_4]: 4,
+  [BLACK_5]: 5
+}
+const FAVOUR_VALUES = CARD_TYPES.map(type => CARD_VALUE_MAP[type])
+const CHARM_THRESHOLD = 11
+const GEISHA_THRESHOLD = 4
+const STARTING_HAND_SIZE = 7
+const MAX_HAND_SIZE = 10
+const LAST_TURN = 7
+const EXPECTED_OTHER_PLAYER_SELECTION_SIZE = {
+  [MOVE_1]: 0,
+  [MOVE_2]: 0,
+  [MOVE_3]: 1,
+  [MOVE_4]: 2
+}
+const MOVE_SIZE_MAP = {
+  1: MOVE_1,
+  2: MOVE_2,
+  3: MOVE_3,
+  4: MOVE_4
+}
+const ALL_MOVES = [
+  MOVE_1,
+  MOVE_2,
+  MOVE_3,
+  MOVE_4
+]
+
+/****************************************************************************
+ *                                  UTILS                                   *
+ ****************************************************************************/
+
+const cardType = card => {
   if (card >= 0 && card <= 1) return PURPLE_2
   else if (card >= 2 && card <= 3) return RED_2
   else if (card >= 4 && card <= 5) return YELLOW_2
@@ -28,15 +82,6 @@ const CARD_TYPE = card => {
   else if (card >= 16 && card <= 20) return BLACK_5
   else throw new Error('ERROR: invalid card number')
 }
-const CARD_TYPES = [PURPLE_2, RED_2, YELLOW_2, BLUE_3, ORANGE_3, GREEN_4, BLACK_5]
-const FAVOUR_VALUES = [2, 2, 2, 3, 3, 4, 5]
-const CHARM_THRESHOLD = 11
-const GEISHA_THRESHOLD = 4
-const STARTING_HAND_SIZE = 7
-const MAX_HAND_SIZE = 10
-
-const PLAYER_1 = 0
-const PLAYER_2 = 1
 
 function shuffle (arr) {
   let a = arr.slice()
@@ -54,22 +99,41 @@ function getNewDeck () {
   return new Set(shuffle(DECK))
 }
 
+/****************************************************************************
+ *                                SELECTORS                                 *
+ ****************************************************************************/
+
 const roundSelector = state => state.round
-const selectedCardsSelector = state => state.selectedCards
-const deckSelector = state => state.deck
 const favourSelector = state => state.favour
+const deckSelector = state => state.deck
+const movesSelector = state => state.moves
+
+const availableMovesSelector = createSelector(
+  movesSelector,
+  moves => playerID => {
+    const availableMoves = new Set()
+    ALL_MOVES.forEach(move => {
+      if (moves[playerID][move].self === null) availableMoves.add(move)
+    })
+    return availableMoves
+  }
+)
+
 const turnSelector = createSelector(
-  selectedCardsSelector,
-  selectedCards => selectedCards[PLAYER_1].concat(selectedCards[PLAYER_2]).reduce(
-    (total, selection) => selection.self === null && selection.other === null ? total : total + 1,
+  movesSelector,
+  moves => moves[PLAYER_1].concat(moves[PLAYER_2]).reduce(
+    (total, selection) => selection.self === null ? total : total + 1,
     0
   )
 )
+
 const currentPlayerSelector = createSelector(
   roundSelector,
   turnSelector,
   (round, turn) => (round + turn) % 2
 )
+
+// All of the cards that you have ever drawn into your hand this round
 const totalHandSelector = createSelector(
   turnSelector,
   deckSelector,
@@ -79,23 +143,32 @@ const totalHandSelector = createSelector(
     return new Set(Array.from(deck.values()).slice(start, start + count))
   }
 )
+
+// All of the cards which you can still play this round
 const handSelector = createSelector(
   totalHandSelector,
-  selectedCardsSelector,
-  (totalHand, selectedCards) => playerID => {
+  movesSelector,
+  (totalHand, moves) => playerID => {
     const playerTotalHand = totalHand(playerID)
     const hand = new Set(playerTotalHand)
 
-    selectedCards[playerID].forEach(move => {
+    moves[playerID].forEach(move => {
       if (move.self) move.self.forEach(card => hand.delete(card))
     })
 
     return hand
   }
 )
+
+const handSizeSelector = createSelector(
+  handSelector,
+  hand => playerID => hand(playerID).size
+)
+
 const currentFavourSelector = createSelector(
-  selectedCardsSelector,
-  selectedCards => {
+  movesSelector,
+  favourSelector,
+  (moves, favour) => {
     const player1Cards = new Set()
     const player2Cards = new Set()
     const player1ItemCount = {
@@ -117,127 +190,127 @@ const currentFavourSelector = createSelector(
       [BLACK_5]: 0
     }
 
-    // TODO: replace these indices with constants
-    if (selectedCards[PLAYER_1][0].self) {
-      selectedCards[PLAYER_1][0].self.forEach(card => player1Cards.add(card))
+    if (moves[PLAYER_1][MOVE_1].self) {
+      moves[PLAYER_1][MOVE_1].self.forEach(card => player1Cards.add(card))
     }
-    if (selectedCards[PLAYER_2][0].self) {
-      selectedCards[PLAYER_2][0].self.forEach(card => player2Cards.add(card))
-    }
-
-    if (selectedCards[PLAYER_1][2].self) {
-      selectedCards[PLAYER_1][2].self.forEach(card => player1Cards.add(card))
-      // TODO: validation?? (Other should be not null)
-      selectedCards[PLAYER_1][2].other.forEach(card => player1Cards.delete(card))
-      selectedCards[PLAYER_1][2].other.forEach(card => player2Cards.add(card))
+    if (moves[PLAYER_2][MOVE_1].self) {
+      moves[PLAYER_2][MOVE_1].self.forEach(card => player2Cards.add(card))
     }
 
-    if (selectedCards[PLAYER_2][2].self) {
-      selectedCards[PLAYER_2][2].self.forEach(card => player2Cards.add(card))
-      selectedCards[PLAYER_2][2].other.forEach(card => player2Cards.delete(card))
-      selectedCards[PLAYER_2][2].other.forEach(card => player1Cards.add(card))
+    if (moves[PLAYER_1][MOVE_3].self) {
+      moves[PLAYER_1][MOVE_3].self.forEach(card => player1Cards.add(card))
+      moves[PLAYER_1][MOVE_3].other.forEach(card => player1Cards.delete(card))
+      moves[PLAYER_1][MOVE_3].other.forEach(card => player2Cards.add(card))
     }
 
-    if (selectedCards[PLAYER_1][3].self) {
-      selectedCards[PLAYER_1][3].self.forEach(card => player1Cards.add(card))
-      selectedCards[PLAYER_1][3].other.forEach(card => player1Cards.delete(card))
-      selectedCards[PLAYER_1][3].other.forEach(card => player2Cards.add(card))
+    if (moves[PLAYER_2][MOVE_3].self) {
+      moves[PLAYER_2][MOVE_3].self.forEach(card => player2Cards.add(card))
+      moves[PLAYER_2][MOVE_3].other.forEach(card => player2Cards.delete(card))
+      moves[PLAYER_2][MOVE_3].other.forEach(card => player1Cards.add(card))
     }
 
-    if (selectedCards[PLAYER_2][3].self) {
-      selectedCards[PLAYER_2][3].self.forEach(card => player2Cards.add(card))
-      selectedCards[PLAYER_2][3].other.forEach(card => player2Cards.delete(card))
-      selectedCards[PLAYER_2][3].other.forEach(card => player1Cards.add(card))
+    if (moves[PLAYER_1][MOVE_4].self) {
+      moves[PLAYER_1][MOVE_4].self.forEach(card => player1Cards.add(card))
+      moves[PLAYER_1][MOVE_4].other.forEach(card => player1Cards.delete(card))
+      moves[PLAYER_1][MOVE_4].other.forEach(card => player2Cards.add(card))
+    }
+
+    if (moves[PLAYER_2][MOVE_4].self) {
+      moves[PLAYER_2][MOVE_4].self.forEach(card => player2Cards.add(card))
+      moves[PLAYER_2][MOVE_4].other.forEach(card => player2Cards.delete(card))
+      moves[PLAYER_2][MOVE_4].other.forEach(card => player1Cards.add(card))
     }
 
     player1Cards.forEach(card => {
-      player1ItemCount[CARD_TYPE(card)] += 1
+      player1ItemCount[cardType(card)] += 1
     })
 
     player2Cards.forEach(card => {
-      player2ItemCount[CARD_TYPE(card)] += 1
+      player2ItemCount[cardType(card)] += 1
     })
 
-    return CARD_TYPES.map(type => {
+    return CARD_TYPES.map((type, index) => {
       if (player1ItemCount[type] > player2ItemCount[type]) return PLAYER_1
       if (player2ItemCount[type] > player1ItemCount[type]) return PLAYER_2
-      return null
+      return favour[index]
     })
   }
 )
+
 const playerCharmSelectorCreator = playerID => createSelector(
   favourSelector,
   favour => favour.map((player, index) => player === playerID ? FAVOUR_VALUES[index] : 0).reduce((a, b) => a + b, 0)
 )
 const player1CharmSelector = playerCharmSelectorCreator(PLAYER_1)
 const player2CharmSelector = playerCharmSelectorCreator(PLAYER_2)
+
 const playerGeishasSelectorCreator = playerID => createSelector(
   favourSelector,
   favour => favour.map((player, index) => player === playerID ? 1 : 0).reduce((a, b) => a + b, 0)
 )
 const player1GeishaSelector = playerGeishasSelectorCreator(PLAYER_1)
 const player2GeishaSelector = playerGeishasSelectorCreator(PLAYER_2)
+
 const winnerSelector = createSelector(
   player1CharmSelector,
   player2CharmSelector,
   player1GeishaSelector,
   player2GeishaSelector,
   (p1charm, p2charm, p1geisha, p2geisha) => {
-    if (p1charm >= CHARM_THRESHOLD && p2charm >= CHARM_THRESHOLD) throw new Error('Wat')
-    else if (p1geisha >= GEISHA_THRESHOLD && p2geisha >= GEISHA_THRESHOLD) throw new Error('WAT')
-    else if (p1charm >= CHARM_THRESHOLD) return PLAYER_1
+    if (p1charm >= CHARM_THRESHOLD) return PLAYER_1
     else if (p2charm >= CHARM_THRESHOLD) return PLAYER_2
     else if (p1geisha >= GEISHA_THRESHOLD) return PLAYER_1
     else if (p2geisha >= GEISHA_THRESHOLD) return PLAYER_2
     else return null
   }
 )
+
 const roundOverSelector = createSelector(
   turnSelector,
-  turn => turn > 7
+  turn => turn > LAST_TURN
 )
+
 const gameOverSelector = createSelector(
-  roundOverSelector,
   winnerSelector,
-  (roundOver, winner) => roundOver && winner !== null
+  winner => winner !== null
 )
 
-// TODO: computed views
-// - size of enemies hand
-
-const INITIALIZE = 'INITIALIZE'
-const TURN = 'TURN'
+/****************************************************************************
+ *                                 REDUCER                                  *
+ ****************************************************************************/
 
 const initialState = {
   round: undefined,
   favour: undefined,
   deck: undefined,
-  selectedCards: undefined
+  moves: undefined
+}
+
+const initialMoves = {
+  [PLAYER_1]: [
+    { self: null },
+    { self: null },
+    { self: null, other: null },
+    { self: null, other: null }
+  ],
+  [PLAYER_2]: [
+    { self: null },
+    { self: null },
+    { self: null, other: null },
+    { self: null, other: null }
+  ]
 }
 
 function game (state = initialState, action) {
   switch (action.type) {
-    case INITIALIZE:
+    case 'INITIALIZE':
       return {
         round: 0,
         favour: [null, null, null, null, null, null, null],
         deck: getNewDeck(),
-        selectedCards: {
-          [PLAYER_1]: [
-            { self: null, other: null },
-            { self: null, other: null },
-            { self: null, other: null },
-            { self: null, other: null }
-          ],
-          [PLAYER_2]: [
-            { self: null, other: null },
-            { self: null, other: null },
-            { self: null, other: null },
-            { self: null, other: null }
-          ]
-        }
+        moves: initialMoves
       }
-    case TURN:
+    case 'TURN':
       if (gameOverSelector(state)) {
         throw new Error('ERROR: attempting to take turn when game is complete')
       }
@@ -245,6 +318,11 @@ function game (state = initialState, action) {
       const { currentPlayerCards, otherPlayerCards } = action.payload.cards
       const currentPlayer = currentPlayerSelector(state)
       const hand = handSelector(state)(currentPlayer)
+      const move = MOVE_SIZE_MAP[currentPlayerCards.size]
+      const expectedOtherPlayerCardCound = EXPECTED_OTHER_PLAYER_SELECTION_SIZE[move]
+
+      // VALIADTE THE MOVE
+
       currentPlayerCards.forEach(card => {
         if (!hand.has(card)) {
           throw new Error(`ERROR: current player does not have card ${card} in its hand`)
@@ -255,66 +333,59 @@ function game (state = initialState, action) {
           throw new Error(`ERROR: other player selected card ${card}, which current player hand't offered`)
         }
       })
-      const moveType = currentPlayerCards.size
 
-      const expectedOtherPlayerCardCound = (() => {
-        switch (moveType) {
-          case 1:
-            return 0
-          case 2:
-            return 0
-          case 3:
-            return 1
-          case 4:
-            return 2
-          default:
-            throw new Error(`ERROR: invalid move type - ${moveType} cards were selected`)
-        }
-      })()
+      if (move !== MOVE_1 && move !== MOVE_2 && move !== MOVE_3 && move !== MOVE_4) {
+        throw new Error(`ERROR: invalid move type`)
+      }
+
       if (expectedOtherPlayerCardCound !== otherPlayerCards.size) {
         throw new Error(`ERROR: expected ${expectedOtherPlayerCardCound} selected cards from other player, got ${otherPlayerCards.size}`)
       }
 
-      const moveIndex = moveType - 1
-
-      if (state.selectedCards[currentPlayer][moveIndex].self !== null) {
-        throw new Error(`ERROR: invalid move type = ${moveType} has already been performed`)
+      if (state.moves[currentPlayer][move].self !== null) {
+        throw new Error(`ERROR: that move has already been performed`)
       }
+
+      if (move === MOVE_4) {
+        const currentPlayerCardsArr = Array.from(currentPlayerCards.values())
+        const otherPlayerCardsArr = Array.from(otherPlayerCards.values())
+
+        if ((
+          !otherPlayerCardsArr.includes(currentPlayerCardsArr[0]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[1])
+        ) && (
+          !otherPlayerCardsArr.includes(currentPlayerCardsArr[2]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[3]
+        ))) {
+          throw new Error('ERROR: other players choice for move 4 was not among first two or last two cards')
+        }
+      }
+
+      // APPLY UPDATE TO STATE
 
       const newState = {
         ...state,
-        selectedCards: {
-          ...state.selectedCards,
-          [currentPlayer]: Object.assign([], state.selectedCards[currentPlayer], {
-            [moveIndex]: {
+        moves: {
+          ...state.moves,
+          [currentPlayer]: Object.assign([], state.moves[currentPlayer], {
+            [move]: {
               self: currentPlayerCards,
-              other: otherPlayerCards
+              ...(otherPlayerCards.size > 0 ? { other: otherPlayerCards } : {})
             }
           })
         }
       }
 
-      if (gameOverSelector(newState)) return newState
-
       if (roundOverSelector(newState)) {
-        return { ...state,
+        const endOfRoundState = { ...newState,
+          favour: currentFavourSelector(newState)
+        }
+
+        if (gameOverSelector(endOfRoundState)) return endOfRoundState
+
+        return {
           round: state.round + 1,
           favour: currentFavourSelector(newState),
           deck: getNewDeck(),
-          selectedCards: {
-            [PLAYER_1]: [
-              { self: null, other: null },
-              { self: null, other: null },
-              { self: null, other: null },
-              { self: null, other: null }
-            ],
-            [PLAYER_2]: [
-              { self: null, other: null },
-              { self: null, other: null },
-              { self: null, other: null },
-              { self: null, other: null }
-            ]
-          }
+          moves: initialMoves
         }
       }
 
@@ -324,141 +395,26 @@ function game (state = initialState, action) {
   }
 }
 
-let store = createStore(game)
+exports.game = game
 
-let hand
+exports.handSelector = handSelector
+exports.gameOverSelector = gameOverSelector
+exports.currentPlayerSelector = currentPlayerSelector
+exports.winnerSelector = winnerSelector
+exports.availableMovesSelector = availableMovesSelector
 
+exports.cardType = cardType
 
-store.dispatch({ type: INITIALIZE })
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_1).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0]]),
-      otherPlayerCards: new Set()
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_2).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0]]),
-      otherPlayerCards: new Set()
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_1).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0], hand[1]]),
-      otherPlayerCards: new Set()
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_2).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0], hand[1]]),
-      otherPlayerCards: new Set()
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_1).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0], hand[1], hand[2]]),
-      otherPlayerCards: new Set([hand[0]])
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_2).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0], hand[1], hand[2]]),
-      otherPlayerCards: new Set([hand[0]])
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_1).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0], hand[1], hand[2], hand[3]]),
-      otherPlayerCards: new Set([hand[0], hand[1]])
-    }
-  }
-})
-console.log('----------')
-
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-hand = Array.from(handSelector(store.getState())(PLAYER_2).values())
-store.dispatch({
-  type: TURN,
-  payload: {
-    cards: {
-      currentPlayerCards: new Set([hand[0], hand[1], hand[2], hand[3]]),
-      otherPlayerCards: new Set([hand[0], hand[1]])
-    }
-  }
-})
-console.log('----------')
-
-console.log(util.inspect(store.getState(), false, null))
-console.log(currentFavourSelector(store.getState()))
-
-
-console.log(player1CharmSelector(store.getState()))
-console.log(player2CharmSelector(store.getState()))
-console.log(player1GeishaSelector(store.getState()))
-console.log(player2GeishaSelector(store.getState()))
-console.log(winnerSelector(store.getState()))
-console.log(turnSelector(store.getState()))
-console.log(gameOverSelector(store.getState()))
+exports.PURPLE_2 = PURPLE_2
+exports.RED_2 = RED_2
+exports.YELLOW_2 = YELLOW_2
+exports.BLUE_3 = BLUE_3
+exports.ORANGE_3 = ORANGE_3
+exports.GREEN_4 = GREEN_4
+exports.BLACK_5 = BLACK_5
+exports.PLAYER_1 = PLAYER_1
+exports.PLAYER_2 = PLAYER_2
+exports.MOVE_1 = MOVE_1
+exports.MOVE_2 = MOVE_2
+exports.MOVE_3 = MOVE_3
+exports.MOVE_4 = MOVE_4
