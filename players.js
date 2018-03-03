@@ -8,31 +8,17 @@ const {
 const basicPlayer = api => ({
   getMove: () => {
     const hand = api.getHand()
-    const totalHand = api.getTotalHand()
+    // const totalHand = api.getTotalHand()
     const availableMoves = api.getAvailableMoves()
-    const favour = api.getFavour()
-    const round = api.getRound()
-    const turn = api.getTurn()
-    const charm = api.getCharm()
-    const moves = api.getMoves()
-    const opponentHandSize = api.getOpponentHandSize()
-    const opponentAvailableMoves = api.getOpponentAvaiableMoves()
-    const opponentCharm = api.getOpponentCharm()
-    const oppenentMoves = api.getOpponentMoves()
-
-    // console.log('round:', round)
-    // console.log('turn:', turn)
-    // console.log('hand:', hand)
-    // console.log('total hand:', totalHand)
-    // console.log('available moves:', availableMoves)
-    // console.log('favour:', favour)
-    // console.log('charm:', charm)
-    // console.log('moves:', moves)
-    // console.log('opponent hand size:', opponentHandSize)
-    // console.log('opponent available moves:', opponentAvailableMoves)
-    // console.log('opponent charm:', opponentCharm)
-    // console.log('opponent moves:', oppenentMoves)
-    // console.log('----------------')
+    // const favour = api.getFavour()
+    // const round = api.getRound()
+    // const turn = api.getTurn()
+    // const charm = api.getCharm()
+    // const moves = api.getMoves()
+    // const opponentHandSize = api.getOpponentHandSize()
+    // const opponentAvailableMoves = api.getOpponentAvaiableMoves()
+    // const opponentCharm = api.getOpponentCharm()
+    // const oppenentMoves = api.getOpponentMoves()
 
     if (availableMoves.includes(MOVE_1)) {
       return [hand[0]]
@@ -58,4 +44,54 @@ const basicPlayer = api => ({
   }
 })
 
+const hoard5sPlayer = api => ({
+  getMove: () => {
+    const hand = api.getHand()
+    // const totalHand = api.getTotalHand()
+    const availableMoves = api.getAvailableMoves()
+    // const favour = api.getFavour()
+    // const round = api.getRound()
+    // const turn = api.getTurn()
+    // const charm = api.getCharm()
+    // const moves = api.getMoves()
+    // const opponentHandSize = api.getOpponentHandSize()
+    // const opponentAvailableMoves = api.getOpponentAvaiableMoves()
+    // const opponentCharm = api.getOpponentCharm()
+    // const oppenentMoves = api.getOpponentMoves()
+
+    if (availableMoves.includes(MOVE_1)) {
+      return [Math.max.apply(null, hand)]
+    }
+
+    if (availableMoves.includes(MOVE_2)) {
+      let lowest = hand[0]
+      let scndlowest = hand[1]
+      hand.slice(1).forEach(card => {
+        if (card < lowest) {
+          scndlowest = lowest
+          lowest = card
+        } else if (card < scndlowest) {
+          scndlowest = card
+        }
+      })
+      return [lowest, scndlowest]
+    }
+
+    if (availableMoves.includes(MOVE_3)) {
+      return [hand[0], hand[1], hand[2]]
+    }
+
+    if (availableMoves.includes(MOVE_4)) {
+      return [hand[0], hand[1], hand[2], hand[3]]
+    }
+  },
+  getMove3Response: cards => {
+    return Math.max.apply(null, cards)
+  },
+  getMove4Response: pairs => {
+    return pairs[0]
+  }
+})
+
 exports.basicPlayer = basicPlayer
+exports.hoard5sPlayer = hoard5sPlayer
