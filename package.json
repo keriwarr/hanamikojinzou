@@ -2,7 +2,7 @@
   "name": "hanami",
   "version": "0.0.0",
   "description": "",
-  "main": "hanami.js",
+  "main": "src/test.js",
   "scripts": {
     "test": "standard"
   },
