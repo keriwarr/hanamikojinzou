@@ -1,8 +1,8 @@
-# Hanami
+# HanamikiJinzou
 
 This is an implementation of an Engine for Hanamikoji the card game.
 
-At the moment, it supports running AI bots head to head with a fairly rudimentary #### `API.`
+At the moment, it supports running AI bots head to head with a fairly rudimentary API.
 
 ## Bot API
 
