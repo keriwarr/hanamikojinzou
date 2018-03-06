@@ -4,13 +4,13 @@ const {
 } = require('./hanami.js')
 const { simulation } = require('./api.js')
 const {
-  basicPlayer,
-  hoard5sPlayer
+  basicPlayer
+  // hoard5sPlayer
 } = require('./players.js')
 
 const players = {
   [PLAYER_1]: basicPlayer,
-  [PLAYER_2]: hoard5sPlayer
+  [PLAYER_2]: basicPlayer // It maybe be unclear that being P2 doesn't actually confer and advantage
 }
 const wins = {
   [PLAYER_1]: 0,
@@ -19,7 +19,7 @@ const wins = {
 
 for (let i = 0; i < 10000; i += 1) {
   const firstPlayer = (i % 2) === 0 ? PLAYER_1 : PLAYER_2
-  const secondPlayer = (i % 2) === 0 ? PLAYER_2 : PLAYER_1
+  const secondPlayer = (i % 2) === 0 ? PLAYER_2 : PLAYER_1 // A fair trail.
   const result = simulation(players[firstPlayer], players[secondPlayer])
 
   if (result === firstPlayer) wins[firstPlayer] += 1

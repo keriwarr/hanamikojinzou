@@ -10,6 +10,7 @@ At the moment, it supports running AI bots head to head with a fairly rudimentar
 - [ ] Tests?
 - [ ] A web interface. Also - a way for humans to play (against AI for now). This would open up the door to taking advantage of some nice features of redux such as the time travelling debugger
 - [ ] Make sure the engine is correct
+- [ ] A selector for cards visibly played on either side of the board, or invisibly and visibly played on your side
 
 ## Performance
 

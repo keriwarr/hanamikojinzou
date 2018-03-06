@@ -26,7 +26,7 @@ const {
 const getOtherPlayer = player => player === PLAYER_1 ? PLAYER_2 : PLAYER_1
 const setToArray = set => Array.from(set.values())
 const convertOwnMoves = moves => {
-  const copy = moves.slice()
+  const copy = moves.slice() //TODO: is this necessary/optimal?
 
   if (copy[MOVE_1].self) {
     copy[MOVE_1] = { self: setToArray(moves[MOVE_1].self) }
@@ -120,6 +120,7 @@ const simulation = (player1, player2) => {
     const otherPlayer = getOtherPlayer(currentPlayer)
     const currentPlayerCards = players[currentPlayer].getMove()
     // TODO: validate currentPlayerCards
+    // TODO: How much validation to
     const otherPlayerCards = (() => {
       if (currentPlayerCards.length === 3) return [players[otherPlayer].getMove3Response(currentPlayerCards)]
       if (currentPlayerCards.length === 4) {
@@ -146,3 +147,4 @@ const simulation = (player1, player2) => {
 }
 
 exports.simulation = simulation
+w
