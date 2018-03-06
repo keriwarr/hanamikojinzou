@@ -1,6 +1,6 @@
-const {
-  PLAYERS
-} = require('./hanami.js')
+'use strict'
+
+const { PLAYERS } = require('./constants.js')
 const { simulation } = require('./api.js')
 const {
   basicPlayer

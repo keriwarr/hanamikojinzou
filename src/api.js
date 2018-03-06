@@ -1,7 +1,13 @@
+'use strict'
+
 const { createStore } = require('redux')
 
 const {
-  game,
+  PLAYERS,
+  MOVES,
+  CARDS
+} = require('./constants.js')
+const {
   handSelector,
   gameOverSelector,
   currentPlayerSelector,
@@ -13,11 +19,9 @@ const {
   roundSelector,
   turnSelector,
   playerCharmSelectorCreator,
-  movesSelector,
-  PLAYERS,
-  MOVES,
-  CARDS
-} = require('./hanami.js')
+  movesSelector
+} = require('./selectors.js')
+const { hanamikojiReducer } = require('./reducer.js')
 
 const getOtherPlayer = player => player === PLAYERS['1'] ? PLAYERS['2'] : PLAYERS['1']
 const setToArray = set => Array.from(set.values())
@@ -77,7 +81,7 @@ const censorOpponentMoves = moves => {
 }
 
 const simulation = (player1, player2) => {
-  const store = createStore(game)
+  const store = createStore(hanamikojiReducer)
 
   store.dispatch({ type: 'INITIALIZE' })
 

@@ -1,6 +1,6 @@
-const {
-  MOVES
-} = require('./hanami.js')
+'use strict'
+
+const { MOVES } = require('./constants.js')
 
 const basicPlayer = api => ({
   getMove: () => {
