@@ -1,4 +1,4 @@
-# HanamikiJinzou
+# HanamikoJinzou
 
 This is an implementation of an Engine for Hanamikoji the card game.
 
