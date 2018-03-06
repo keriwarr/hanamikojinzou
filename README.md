@@ -98,6 +98,10 @@ A description of the moves your opponent has made. The cards which they played f
 - [ ] A selector for cards visibly played on either side of the board, or invisibly and visibly played on your side
 - [ ] Create some mechanism whereby bots can explore potential changes to the game state
 - [ ] Turn API methods into selectors, to take advantage fo memoization, where possible
+- [ ] Add more API methods/selectors:
+  - what moves you've played
+  - what moves they've played
+  - what happnend on the nth round
 
 ## Performance
 

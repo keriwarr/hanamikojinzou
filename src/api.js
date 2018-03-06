@@ -14,39 +14,35 @@ const {
   turnSelector,
   playerCharmSelectorCreator,
   movesSelector,
-  PLAYER_1,
-  PLAYER_2,
-  MOVE_1,
-  MOVE_2,
-  MOVE_3,
-  MOVE_4,
-  UNKNOWN
+  PLAYERS,
+  MOVES,
+  CARDS
 } = require('./hanami.js')
 
-const getOtherPlayer = player => player === PLAYER_1 ? PLAYER_2 : PLAYER_1
+const getOtherPlayer = player => player === PLAYERS['1'] ? PLAYERS['2'] : PLAYERS['1']
 const setToArray = set => Array.from(set.values())
 const convertOwnMoves = moves => {
-  const copy = moves.slice() //TODO: is this necessary/optimal?
+  const copy = moves.slice() // TODO: is this necessary/optimal?
 
-  if (copy[MOVE_1].self) {
-    copy[MOVE_1] = { self: setToArray(moves[MOVE_1].self) }
+  if (copy[MOVES['1']].self) {
+    copy[MOVES['1']] = { self: setToArray(moves[MOVES['1']].self) }
   }
 
-  if (copy[MOVE_2].self) {
-    copy[MOVE_2] = { self: setToArray(moves[MOVE_2].self) }
+  if (copy[MOVES['2']].self) {
+    copy[MOVES['2']] = { self: setToArray(moves[MOVES['2']].self) }
   }
 
-  if (copy[MOVE_3].self) {
-    copy[MOVE_3] = {
-      self: setToArray(moves[MOVE_3].self),
-      other: setToArray(moves[MOVE_3].other)
+  if (copy[MOVES['3']].self) {
+    copy[MOVES['3']] = {
+      self: setToArray(moves[MOVES['3']].self),
+      other: setToArray(moves[MOVES['3']].other)
     }
   }
 
-  if (copy[MOVE_4].self) {
-    copy[MOVE_4] = {
-      self: setToArray(moves[MOVE_4].self),
-      other: setToArray(moves[MOVE_4].other)
+  if (copy[MOVES['4']].self) {
+    copy[MOVES['4']] = {
+      self: setToArray(moves[MOVES['4']].self),
+      other: setToArray(moves[MOVES['4']].other)
     }
   }
 
@@ -55,25 +51,25 @@ const convertOwnMoves = moves => {
 const censorOpponentMoves = moves => {
   const copy = moves.slice()
 
-  if (copy[MOVE_1].self) {
-    copy[MOVE_1] = { self: [UNKNOWN] }
+  if (copy[MOVES['1']].self) {
+    copy[MOVES['1']] = { self: [CARDS.UNKNOWN] }
   }
 
-  if (copy[MOVE_2].self) {
-    copy[MOVE_2] = { self: [UNKNOWN, UNKNOWN] }
+  if (copy[MOVES['2']].self) {
+    copy[MOVES['2']] = { self: [CARDS.UNKNOWN, CARDS.UNKNOWN] }
   }
 
-  if (copy[MOVE_3].self) {
-    copy[MOVE_3] = {
-      self: setToArray(moves[MOVE_3].self),
-      other: setToArray(moves[MOVE_3].other)
+  if (copy[MOVES['3']].self) {
+    copy[MOVES['3']] = {
+      self: setToArray(moves[MOVES['3']].self),
+      other: setToArray(moves[MOVES['3']].other)
     }
   }
 
-  if (copy[MOVE_4].self) {
-    copy[MOVE_4] = {
-      self: setToArray(moves[MOVE_4].self),
-      other: setToArray(moves[MOVE_4].other)
+  if (copy[MOVES['4']].self) {
+    copy[MOVES['4']] = {
+      self: setToArray(moves[MOVES['4']].self),
+      other: setToArray(moves[MOVES['4']].other)
     }
   }
 
@@ -100,8 +96,8 @@ const simulation = (player1, player2) => {
     getOpponentMoves: () => censorOpponentMoves(movesSelector(store.getState())[getOtherPlayer(playerID)])
   })
 
-  const p1 = player1(api(PLAYER_1))
-  const p2 = player2(api(PLAYER_2))
+  const p1 = player1(api(PLAYERS['1']))
+  const p2 = player2(api(PLAYERS['2']))
 
   if (!p1.getMove || !p1.getMove3Response || !p1.getMove4Response) {
     throw new Error('ERROR: p1 is missing method declarations')
@@ -111,8 +107,8 @@ const simulation = (player1, player2) => {
   }
 
   const players = {
-    [PLAYER_1]: p1,
-    [PLAYER_2]: p2
+    [PLAYERS['1']]: p1,
+    [PLAYERS['2']]: p2
   }
 
   while (!gameOverSelector(store.getState())) {
@@ -147,4 +143,3 @@ const simulation = (player1, player2) => {
 }
 
 exports.simulation = simulation
-w

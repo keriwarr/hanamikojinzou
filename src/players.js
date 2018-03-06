@@ -1,8 +1,5 @@
 const {
-  MOVE_1,
-  MOVE_2,
-  MOVE_3,
-  MOVE_4
+  MOVES
 } = require('./hanami.js')
 
 const basicPlayer = api => ({
@@ -20,19 +17,19 @@ const basicPlayer = api => ({
     // const opponentCharm = api.getOpponentCharm()
     // const oppenentMoves = api.getOpponentMoves()
 
-    if (availableMoves.includes(MOVE_1)) {
+    if (availableMoves.includes(MOVES['1'])) {
       return [hand[0]]
     }
 
-    if (availableMoves.includes(MOVE_2)) {
+    if (availableMoves.includes(MOVES['2'])) {
       return [hand[0], hand[1]]
     }
 
-    if (availableMoves.includes(MOVE_3)) {
+    if (availableMoves.includes(MOVES['3'])) {
       return [hand[0], hand[1], hand[2]]
     }
 
-    if (availableMoves.includes(MOVE_4)) {
+    if (availableMoves.includes(MOVES['4'])) {
       return [hand[0], hand[1], hand[2], hand[3]]
     }
   },
@@ -59,11 +56,11 @@ const hoard5sPlayer = api => ({
     // const opponentCharm = api.getOpponentCharm()
     // const oppenentMoves = api.getOpponentMoves()
 
-    if (availableMoves.includes(MOVE_1)) {
+    if (availableMoves.includes(MOVES['1'])) {
       return [Math.max.apply(null, hand)]
     }
 
-    if (availableMoves.includes(MOVE_2)) {
+    if (availableMoves.includes(MOVES['2'])) {
       let lowest = hand[0]
       let scndlowest = hand[1]
       hand.slice(1).forEach(card => {
@@ -77,11 +74,11 @@ const hoard5sPlayer = api => ({
       return [lowest, scndlowest]
     }
 
-    if (availableMoves.includes(MOVE_3)) {
+    if (availableMoves.includes(MOVES['3'])) {
       return [hand[0], hand[1], hand[2]]
     }
 
-    if (availableMoves.includes(MOVE_4)) {
+    if (availableMoves.includes(MOVES['4'])) {
       return [hand[0], hand[1], hand[2], hand[3]]
     }
   },
