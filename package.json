@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/keriwarr/hanami#readme",
   "dependencies": {
+    "immutable": "^3.8.2",
     "redux": "^3.7.2",
     "reselect": "^3.0.1"
   },

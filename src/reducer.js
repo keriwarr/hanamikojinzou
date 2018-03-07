@@ -1,135 +1,98 @@
 'use strict'
 
+const { OrderedSet } = require('immutable')
+
 const {
-  PLAYERS,
-  MOVES,
   MOVE_SIZE_TO_MOVE_MAP,
-  EXPECTED_OTHER_PLAYER_SELECTION_SIZE
+  EXPECTED_OTHER_PLAYER_SELECTION_SIZE,
+  StateRecord,
+  MoveRecord
 } = require('./constants.js')
-const { getNewDeck } = require('./utils.js')
+const { getShuffledDeck } = require('./utils.js')
 const {
   gameOverSelector,
   currentPlayerSelector,
-  handSelector,
+  handSelectors,
   roundOverSelector,
   currentFavourSelector
 } = require('./selectors.js')
 
-const initialState = {
-  round: undefined,
-  favour: undefined,
-  deck: undefined,
-  moves: undefined
-}
-
-// For moves three and four which have `other` keys, the data is modeled as such:
-// `self` represents all of the cards that the current player chose to offer to the other player
-// `other` represents the cards that the other player chose
-// Thus, other is a strict subset of self, and so some of the cards in self, are actually played on the other players side of the board
-// Furthermore, we have the invariant that the union of all the cards under the self keys for a plyaer are all the cards they've played so for this round
-// And so, the union of a players `self` cards will ultimately compromise the full set of cards that they had received into their hand on that round.
-const initialMoves = {
-  [PLAYERS['1']]: [
-    { self: null },
-    { self: null },
-    { self: null, other: null },
-    { self: null, other: null }
-  ],
-  [PLAYERS['2']]: [
-    { self: null },
-    { self: null },
-    { self: null, other: null },
-    { self: null, other: null }
-  ]
-}
+const initialState = new StateRecord()
 
 const hanamikojiReducer = (state = initialState, action) => {
   switch (action.type) {
     case 'INITIALIZE':
-      return {
-        round: 0,
-        favour: [null, null, null, null, null, null, null],
-        deck: getNewDeck(),
-        moves: initialMoves
-      }
+      return state.clear().set('deck', getShuffledDeck())
     case 'TURN':
       if (gameOverSelector(state)) { // Thus the client should ensure that the game is not over yet before submitting a new TURN action
         throw new Error('ERROR: attempting to take turn when game is complete')
       }
 
-      const { currentPlayerCards, otherPlayerCards } = action.payload.cards
-      const currentPlayer = currentPlayerSelector(state)
-      const hand = handSelector(state)(currentPlayer)
+      const currentPlayerID = currentPlayerSelector(state)
+      const { currentPlayerCards, otherPlayerCards } = action.payload
+
+      if (!(currentPlayerCards instanceof OrderedSet) || !(otherPlayerCards instanceof OrderedSet)) {
+        throw new Error(`ERROR: player returned invalid value`)
+      }
+      const hand = handSelectors[currentPlayerID](state)
       const move = MOVE_SIZE_TO_MOVE_MAP[currentPlayerCards.size]
-      const expectedOtherPlayerCardCound = EXPECTED_OTHER_PLAYER_SELECTION_SIZE[move]
+      const expectedOtherPlayerCardCount = EXPECTED_OTHER_PLAYER_SELECTION_SIZE[move]
 
       // VALIADTE THE MOVE
+      if (move === undefined || expectedOtherPlayerCardCount === undefined) {
+        throw new Error(`ERROR: invalid move type`)
+      }
 
       currentPlayerCards.forEach(card => {
         if (!hand.has(card)) {
           throw new Error(`ERROR: current player does not have card ${card} in its hand`)
         }
       })
+
       otherPlayerCards.forEach(card => {
         if (!currentPlayerCards.has(card)) {
           throw new Error(`ERROR: other player selected card ${card}, which current player hand't offered`)
         }
       })
 
-      if (move !== MOVES['1'] && move !== MOVES['2'] && move !== MOVES['3'] && move !== MOVES['4']) {
-        throw new Error(`ERROR: invalid move type`)
+      if (expectedOtherPlayerCardCount !== otherPlayerCards.size) {
+        throw new Error(`ERROR: expected ${expectedOtherPlayerCardCount} selected cards from other player, got ${otherPlayerCards.size}`)
       }
 
-      if (expectedOtherPlayerCardCound !== otherPlayerCards.size) {
-        throw new Error(`ERROR: expected ${expectedOtherPlayerCardCound} selected cards from other player, got ${otherPlayerCards.size}`)
-      }
-
-      if (state.moves[currentPlayer][move].self !== null) {
+      if (state.moves[currentPlayerID][move].self !== null) {
         throw new Error(`ERROR: that move has already been performed`)
       }
 
-      if (move === MOVES['4']) {
-        const currentPlayerCardsArr = Array.from(currentPlayerCards.values())
-        const otherPlayerCardsArr = Array.from(otherPlayerCards.values())
+      // FIXME:
+      // if (move === MOVES.M4) {
+      //   const currentPlayerCardsArr = Array.from(currentPlayerCards.values())
+      //   const otherPlayerCardsArr = Array.from(otherPlayerCards.values())
 
-        if (( // TODO: can I make this cleaner?
-          !otherPlayerCardsArr.includes(currentPlayerCardsArr[0]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[1])
-        ) && (
-            !otherPlayerCardsArr.includes(currentPlayerCardsArr[2]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[3]
-            ))) {
-          throw new Error('ERROR: other players choice for move 4 was not among first two or last two cards')
-        }
-      }
+      //   if (( // TODO: can I make this cleaner?
+      //     !otherPlayerCardsArr.includes(currentPlayerCardsArr[0]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[1])
+      //   ) && (
+      //       !otherPlayerCardsArr.includes(currentPlayerCardsArr[2]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[3]
+      //       ))) {
+      //     throw new Error('ERROR: other players choice for move 4 was not among first two or last two cards')
+      //   }
+      // }
 
       // APPLY UPDATE TO STATE
 
-      const newState = {
-        ...state,
-        moves: {
-          ...state.moves,
-          [currentPlayer]: Object.assign([], state.moves[currentPlayer], {
-            [move]: {
-              self: currentPlayerCards,
-              ...(otherPlayerCards.size > 0 ? { other: otherPlayerCards } : {})
-            }
-          })
-        }
-      }
+      const newState = state.setIn(['moves', currentPlayerID, move], new MoveRecord({
+        self: currentPlayerCards,
+        other: otherPlayerCards
+      }))
 
       if (roundOverSelector(newState)) {
-        const endOfRoundState = {
-          ...newState,
-          favour: currentFavourSelector(newState)
-        }
+        const endOfRoundState = newState.set('favour', currentFavourSelector(newState))
 
         if (gameOverSelector(endOfRoundState)) return endOfRoundState
 
-        return {
-          round: state.round + 1,
-          favour: currentFavourSelector(newState),
-          deck: getNewDeck(),
-          moves: initialMoves
-        }
+        return endOfRoundState
+          .remove('moves')
+          .set('deck', getShuffledDeck())
+          .set('round', state.round + 1)
       }
 
       return newState
