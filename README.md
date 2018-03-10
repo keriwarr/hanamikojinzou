@@ -94,6 +94,7 @@ A description of the moves your opponent has made. The cards which they played f
 - [ ] Abstract hands away into a class with a Set() as the internal state, but useful functions on top of that
 - [ ] Tests?
 - [ ] A web interface. Also - a way for humans to play (against AI for now). This would open up the door to taking advantage of some nice features of redux such as the time travelling debugger
+  - Use the Redux Devtools
 - [ ] Make sure the engine is correct
 - [ ] A selector for cards visibly played on either side of the board, or invisibly and visibly played on your side
 - [ ] Create some mechanism whereby bots can explore potential changes to the game state
@@ -102,6 +103,7 @@ A description of the moves your opponent has made. The cards which they played f
   - what moves you've played
   - what moves they've played
   - what happnend on the nth round
+- [ ] Maybe add https://github.com/omnidan/redux-undo group by round, limit history size
 
 ## Performance
 
