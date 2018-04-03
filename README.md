@@ -102,6 +102,7 @@ A description of the moves your opponent has made. The cards which they played f
   - what moves you've played
   - what moves they've played
   - what happnend on the nth round
+- [ ] Short circuit reaction moves when there is no decision to be made.
 
 ## Performance
 
