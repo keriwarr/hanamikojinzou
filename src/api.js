@@ -3,9 +3,9 @@
 const { createStore } = require('redux')
 
 const {
-  PLAYERS,
-  MOVES,
-  CARDS
+  PLAYER,
+  MOVE,
+  GEISHA
 } = require('./constants.js')
 const {
   handSelector,
@@ -22,31 +22,31 @@ const {
   movesSelector
 } = require('./selectors.js')
 const { hanamikojiReducer } = require('./reducer.js')
+const { getOtherPlayer } = require('./utils.js')
 
-const getOtherPlayer = player => player === PLAYERS['1'] ? PLAYERS['2'] : PLAYERS['1']
-const setToArray = set => Array.from(set.values())
+const setToArray = set => Array.from(set)
 const convertOwnMoves = moves => {
   const copy = moves.slice() // TODO: is this necessary/optimal?
 
-  if (copy[MOVES['1']].self) {
-    copy[MOVES['1']] = { self: setToArray(moves[MOVES['1']].self) }
+  if (copy[MOVE.SECRET].self) {
+    copy[MOVE.SECRET] = { self: setToArray(moves[MOVE.SECRET].self) }
   }
 
-  if (copy[MOVES['2']].self) {
-    copy[MOVES['2']] = { self: setToArray(moves[MOVES['2']].self) }
+  if (copy[MOVE.TRADEOFF].self) {
+    copy[MOVE.TRADEOFF] = { self: setToArray(moves[MOVE.TRADEOFF].self) }
   }
 
-  if (copy[MOVES['3']].self) {
-    copy[MOVES['3']] = {
-      self: setToArray(moves[MOVES['3']].self),
-      other: setToArray(moves[MOVES['3']].other)
+  if (copy[MOVE.GIFT].self) {
+    copy[MOVE.GIFT] = {
+      self: setToArray(moves[MOVE.GIFT].self),
+      other: setToArray(moves[MOVE.GIFT].other)
     }
   }
 
-  if (copy[MOVES['4']].self) {
-    copy[MOVES['4']] = {
-      self: setToArray(moves[MOVES['4']].self),
-      other: setToArray(moves[MOVES['4']].other)
+  if (copy[MOVE.COMPETITION].self) {
+    copy[MOVE.COMPETITION] = {
+      self: setToArray(moves[MOVE.COMPETITION].self),
+      other: setToArray(moves[MOVE.COMPETITION].other)
     }
   }
 
@@ -55,25 +55,25 @@ const convertOwnMoves = moves => {
 const censorOpponentMoves = moves => {
   const copy = moves.slice()
 
-  if (copy[MOVES['1']].self) {
-    copy[MOVES['1']] = { self: [CARDS.UNKNOWN] }
+  if (copy[MOVE.SECRET].self) {
+    copy[MOVE.SECRET] = { self: [GEISHA.UNKNOWN] }
   }
 
-  if (copy[MOVES['2']].self) {
-    copy[MOVES['2']] = { self: [CARDS.UNKNOWN, CARDS.UNKNOWN] }
+  if (copy[MOVE.TRADEOFF].self) {
+    copy[MOVE.TRADEOFF] = { self: [GEISHA.UNKNOWN, GEISHA.UNKNOWN] }
   }
 
-  if (copy[MOVES['3']].self) {
-    copy[MOVES['3']] = {
-      self: setToArray(moves[MOVES['3']].self),
-      other: setToArray(moves[MOVES['3']].other)
+  if (copy[MOVE.GIFT].self) {
+    copy[MOVE.GIFT] = {
+      self: setToArray(moves[MOVE.GIFT].self),
+      other: setToArray(moves[MOVE.GIFT].other)
     }
   }
 
-  if (copy[MOVES['4']].self) {
-    copy[MOVES['4']] = {
-      self: setToArray(moves[MOVES['4']].self),
-      other: setToArray(moves[MOVES['4']].other)
+  if (copy[MOVE.COMPETITION].self) {
+    copy[MOVE.COMPETITION] = {
+      self: setToArray(moves[MOVE.COMPETITION].self),
+      other: setToArray(moves[MOVE.COMPETITION].other)
     }
   }
 
@@ -100,8 +100,8 @@ const simulation = (player1, player2) => {
     getOpponentMoves: () => censorOpponentMoves(movesSelector(store.getState())[getOtherPlayer(playerID)])
   })
 
-  const p1 = player1(api(PLAYERS['1']))
-  const p2 = player2(api(PLAYERS['2']))
+  const p1 = player1(api(PLAYER.FIRST))
+  const p2 = player2(api(PLAYER.SECOND))
 
   if (!p1.getMove || !p1.getMove3Response || !p1.getMove4Response) {
     throw new Error('ERROR: p1 is missing method declarations')
@@ -111,22 +111,22 @@ const simulation = (player1, player2) => {
   }
 
   const players = {
-    [PLAYERS['1']]: p1,
-    [PLAYERS['2']]: p2
+    [PLAYER.FIRST]: p1,
+    [PLAYER.SECOND]: p2
   }
 
   while (!gameOverSelector(store.getState())) {
     const currentPlayer = currentPlayerSelector(store.getState())
     const otherPlayer = getOtherPlayer(currentPlayer)
-    const currentPlayerCards = players[currentPlayer].getMove()
-    // TODO: validate currentPlayerCards
+    const currentPlayerGEISHA = players[currentPlayer].getMove()
+    // TODO: validate currentPlayerGEISHA
     // TODO: How much validation to
-    const otherPlayerCards = (() => {
-      if (currentPlayerCards.length === 3) return [players[otherPlayer].getMove3Response(currentPlayerCards)]
-      if (currentPlayerCards.length === 4) {
+    const otherPlayerGEISHA = (() => {
+      if (currentPlayerGEISHA.length === 3) return [players[otherPlayer].getMove3Response(currentPlayerGEISHA)]
+      if (currentPlayerGEISHA.length === 4) {
         return players[otherPlayer].getMove4Response([
-          [currentPlayerCards[0], currentPlayerCards[1]],
-          [currentPlayerCards[2], currentPlayerCards[3]]
+          [currentPlayerGEISHA[0], currentPlayerGEISHA[1]],
+          [currentPlayerGEISHA[2], currentPlayerGEISHA[3]]
         ])
       }
       return []
@@ -135,10 +135,8 @@ const simulation = (player1, player2) => {
     store.dispatch({
       type: 'TURN',
       payload: {
-        cards: {
-          currentPlayerCards: new Set(currentPlayerCards),
-          otherPlayerCards: new Set(otherPlayerCards)
-        }
+        currentPlayerGEISHA: new Set(currentPlayerGEISHA),
+        otherPlayerGEISHA: new Set(otherPlayerGEISHA)
       }
     })
   }

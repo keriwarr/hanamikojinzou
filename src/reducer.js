@@ -1,138 +1,165 @@
 'use strict'
 
 const {
-  PLAYERS,
-  MOVES,
-  MOVE_SIZE_TO_MOVE_MAP,
-  EXPECTED_OTHER_PLAYER_SELECTION_SIZE
+  GEISHA,
+  PLAYER,
+  MOVE
 } = require('./constants.js')
-const { getNewDeck } = require('./utils.js')
+const {
+  getShuffledDeck,
+  playerToString
+} = require('./utils.js')
 const {
   gameOverSelector,
   currentPlayerSelector,
-  handSelector,
+  handSelectors,
   roundOverSelector,
-  currentFavourSelector
+  currentFavourSelector,
+  roundSelector,
+  turnSelector
 } = require('./selectors.js')
 
-const initialState = {
-  round: undefined,
-  favour: undefined,
-  deck: undefined,
-  moves: undefined
+const moveSet = {
+  [MOVE.SECRET]: null,
+  [MOVE.TRADEOFF]: null,
+  [MOVE.GIFT]: null,
+  [MOVE.COMPETITION]: null
 }
 
-// For moves three and four which have `other` keys, the data is modeled as such:
-// `self` represents all of the cards that the current player chose to offer to the other player
-// `other` represents the cards that the other player chose
-// Thus, other is a strict subset of self, and so some of the cards in self, are actually played on the other players side of the board
-// Furthermore, we have the invariant that the union of all the cards under the self keys for a plyaer are all the cards they've played so for this round
-// And so, the union of a players `self` cards will ultimately compromise the full set of cards that they had received into their hand on that round.
 const initialMoves = {
-  [PLAYERS['1']]: [
-    { self: null },
-    { self: null },
-    { self: null, other: null },
-    { self: null, other: null }
-  ],
-  [PLAYERS['2']]: [
-    { self: null },
-    { self: null },
-    { self: null, other: null },
-    { self: null, other: null }
-  ]
+  [PLAYER.FIRST]: Object.assign({}, moveSet),
+  [PLAYER.SECOND]: Object.assign({}, moveSet)
 }
 
-const hanamikojiReducer = (state = initialState, action) => {
+const initialFavour = {
+  [GEISHA.PURPLE_2]: null,
+  [GEISHA.RED_2]: null,
+  [GEISHA.YELLOW_2]: null,
+  [GEISHA.BLUE_3]: null,
+  [GEISHA.ORANGE_3]: null,
+  [GEISHA.GREEN_4]: null,
+  [GEISHA.PINK_5]: null
+}
+
+const err = (state, msg = '') => {
+  const currentPlayerID = currentPlayerSelector(state)
+  const player = playerToString(currentPlayerID)
+  const round = roundSelector(state)
+  const turn = turnSelector(state)
+  throw new Error(`ERROR: ${msg}; player={${player}} round={${round}} turn={${turn}}`)
+}
+
+const hanamikojiReducer = (state = {}, action) => {
   switch (action.type) {
     case 'INITIALIZE':
       return {
         round: 0,
-        favour: [null, null, null, null, null, null, null],
-        deck: getNewDeck(),
+        favour: initialFavour,
+        deck: getShuffledDeck(),
         moves: initialMoves
       }
+
     case 'TURN':
-      if (gameOverSelector(state)) { // Thus the client should ensure that the game is not over yet before submitting a new TURN action
-        throw new Error('ERROR: attempting to take turn when game is complete')
+      // The client should ensure that the game is not over yet before
+      // submitting a new TURN action
+      if (gameOverSelector(state)) {
+        err(state, 'attempting to take turn when game is complete')
       }
 
-      const { currentPlayerCards, otherPlayerCards } = action.payload.cards
-      const currentPlayer = currentPlayerSelector(state)
-      const hand = handSelector(state)(currentPlayer)
-      const move = MOVE_SIZE_TO_MOVE_MAP[currentPlayerCards.size]
-      const expectedOtherPlayerCardCound = EXPECTED_OTHER_PLAYER_SELECTION_SIZE[move]
+      const { moveID, cards, pairs, responseCards } = action.payload
+      const currentPlayerID = currentPlayerSelector(state)
+      const hand = handSelectors[currentPlayerID](state)
 
-      // VALIADTE THE MOVE
-
-      currentPlayerCards.forEach(card => {
-        if (!hand.has(card)) {
-          throw new Error(`ERROR: current player does not have card ${card} in its hand`)
-        }
-      })
-      otherPlayerCards.forEach(card => {
-        if (!currentPlayerCards.has(card)) {
-          throw new Error(`ERROR: other player selected card ${card}, which current player hand't offered`)
-        }
-      })
-
-      if (move !== MOVES['1'] && move !== MOVES['2'] && move !== MOVES['3'] && move !== MOVES['4']) {
-        throw new Error(`ERROR: invalid move type`)
+      if (state.moves[currentPlayerID][moveID] !== null) {
+        err(state, 'invalid move type, may have already been played')
       }
 
-      if (expectedOtherPlayerCardCound !== otherPlayerCards.size) {
-        throw new Error(`ERROR: expected ${expectedOtherPlayerCardCound} selected cards from other player, got ${otherPlayerCards.size}`)
+      let move
+
+      switch (moveID) {
+        case MOVE.SECRET:
+          if (!cards || cards.size !== 1) {
+            err(state, 'a card was not given for move type: "Secret"')
+          }
+          if (!cards.isSubsetOf(hand)) {
+            err(state, 'given card is not in hand for move type: "Secret"')
+          }
+
+          move = { cards }
+          break
+        case MOVE.TRADEOFF:
+          if (!cards || cards.size !== 2) {
+            err(state, 'invalid cards given for move type: "Tradeoff"')
+          }
+          if (!cards.isSubsetOf(hand)) {
+            err(state, 'given cards are not in hand for move type: "Tradeoff"')
+          }
+
+          move = { cards }
+          break
+        case MOVE.GIFT:
+          if (!cards || cards.size !== 3) {
+            err(state, 'invalid cards given for move type: "Gift"')
+          }
+          if (!cards.isSubsetOf(hand)) {
+            err(state, 'given cards are not in hand for move type: "Gift"')
+          }
+          if (!responseCards || responseCards.size !== 1) {
+            err(state, 'a card was not given in response for move type: "Gift"')
+          }
+          if (!responseCards.isSubsetOf(cards)) {
+            err(state, 'response card is not in current players selection for move type: "Gift"')
+          }
+
+          move = { cards, responseCards }
+          break
+        case MOVE.COMPETITION:
+          if (!pairs || pairs.length !== 2 || pairs[0].size !== 2 || pairs[1].size !== 2) {
+            err(state, 'invalid pairs given for move type: "Competition"')
+          }
+          if (!pairs[0].isDisjointFrom(pairs[1])) {
+            err(state, 'pairs contain duplicate cards for move type: "Competition"')
+          }
+          if (!pairs[0].isSubsetOf(hand) || !pairs[1].isSubsetOf(hand)) {
+            err(state, 'given pair cards are not in hand for move type: "Competition"')
+          }
+          if (!pairs.includes(responseCards)) {
+            err(state, 'response pair is not in current players selection for move type: "Competition"')
+          }
+
+          move = { pairs, responseCards }
+          break
+        default:
+          err(state, 'invalid move type')
       }
 
-      if (state.moves[currentPlayer][move].self !== null) {
-        throw new Error(`ERROR: that move has already been performed`)
-      }
-
-      if (move === MOVES['4']) {
-        const currentPlayerCardsArr = Array.from(currentPlayerCards.values())
-        const otherPlayerCardsArr = Array.from(otherPlayerCards.values())
-
-        if (( // TODO: can I make this cleaner?
-          !otherPlayerCardsArr.includes(currentPlayerCardsArr[0]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[1])
-        ) && (
-            !otherPlayerCardsArr.includes(currentPlayerCardsArr[2]) || !otherPlayerCardsArr.includes(currentPlayerCardsArr[3]
-            ))) {
-          throw new Error('ERROR: other players choice for move 4 was not among first two or last two cards')
-        }
-      }
-
-      // APPLY UPDATE TO STATE
-
-      const newState = {
-        ...state,
-        moves: {
-          ...state.moves,
-          [currentPlayer]: Object.assign([], state.moves[currentPlayer], {
-            [move]: {
-              self: currentPlayerCards,
-              ...(otherPlayerCards.size > 0 ? { other: otherPlayerCards } : {})
-            }
+      const newState = Object.assign({}, state, {
+        moves: Object.assign({}, state.moves, {
+          [currentPlayerID]: Object.assign({}, state.moves[currentPlayerID], {
+            [moveID]: move
           })
-        }
-      }
+        })
+      })
 
       if (roundOverSelector(newState)) {
-        const endOfRoundState = {
-          ...newState,
-          favour: currentFavourSelector(newState)
-        }
+        const newFavour = currentFavourSelector(newState)
+        const endOfRoundState = Object.assign({}, newState, {
+          favour: newFavour
+        })
 
-        if (gameOverSelector(endOfRoundState)) return endOfRoundState
+        if (gameOverSelector(endOfRoundState)) {
+          return endOfRoundState
+        }
 
         return {
           round: state.round + 1,
-          favour: currentFavourSelector(newState),
-          deck: getNewDeck(),
+          favour: newFavour,
+          deck: getShuffledDeck(),
           moves: initialMoves
         }
       }
-
       return newState
+
     default:
       return state
   }
