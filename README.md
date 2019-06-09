@@ -20,7 +20,7 @@ const bot = api => ({
   getMove4Response: pairs => {
     // ...
   }
-})
+});
 ```
 
 ### `CardSet`
@@ -28,6 +28,7 @@ const bot = api => ({
 A CardSet is a data structure representing a collection of cards.
 
 ### `getMove() : () -> CardSet`
+
 `getMove` is expected to return a `CardSet` that is a subset of your hand
 (itself a `CardSet`).
 The move that you are making is inferred from the size of the returned
@@ -37,10 +38,12 @@ are inferred to be the first card paired with the second card, and the third
 card paired witht the fourth card. This may change in the future.
 
 ### `getMove3Response() : CardSet -> Card`
+
 `getMove3Response` is expected to return a single card taken from the given
 `CardSet`.
 
 ### `getMove4Response() : [CardSet, CardSet] -> CardSet`
+
 `getMove4Response` is expected to return one of the two given `CardSet`s.
 
 ### `api`
@@ -104,27 +107,26 @@ for moves 1 and 2 have been censored.
 ## TODO
 
 - [ ] Abstract hands away into a class with a Set() as the internal state, but
-  useful functions on top of that
+      useful functions on top of that
 - [ ] Tests?
 - [ ] A web interface. Also - a way for humans to play (against AI for now).
-  This would open up the door to taking advantage of some nice features of redux
-  such as the time travelling debugger
+      This would open up the door to taking advantage of some nice features of redux
+      such as the time travelling debugger
 - [ ] Make sure the engine is correct
 - [ ] A selector for cards visibly played on either side of the board, or
-  invisibly and visibly played on your side
+      invisibly and visibly played on your side
 - [ ] Create some mechanism whereby bots can explore potential changes to the
-  game state
+      game state
 - [ ] Turn API methods into selectors, to take advantage fo memoization, where
-  possible
+      possible
 - [ ] Add more API methods/selectors:
   - what moves you've played
   - what moves they've played
   - what happnend on the nth round
 - [ ] Short circuit reaction moves when there is no decision to be made.
 - [ ] Consume an optional max rounds, with distinguished options: three, and
-  infinity.
+      infinity.
   - figure out how to break complete ties
-
 
 ## Performance
 

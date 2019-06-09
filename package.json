@@ -1,26 +1,29 @@
 {
-  "name": "hanami",
-  "version": "0.0.0",
+  "name": "hanamikojinzou",
+  "version": "0.0.1",
   "description": "",
   "main": "src/test.js",
   "scripts": {
-    "test": "standard"
+    "go": "tsc && node src/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/keriwarr/hanami.git"
+    "url": "git+https://github.com/keriwarr/hanamikojinzou.git"
   },
   "author": "Keri Warr",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/keriwarr/hanami/issues"
+    "url": "https://github.com/keriwarr/hanamikojinzou/issues"
   },
-  "homepage": "https://github.com/keriwarr/hanami#readme",
+  "homepage": "https://github.com/keriwarr/hanamikojinzou#readme",
   "dependencies": {
+    "@types/ramda": "^0.26.9",
+    "ramda": "^0.26.1",
     "redux": "^3.7.2",
-    "reselect": "^3.0.1"
+    "reselect": "^3.0.1",
+    "typescript-memoize": "^1.0.0-alpha.3"
   },
   "devDependencies": {
-    "standard": "^11.0.0"
+    "typescript": "^3.5.1"
   }
 }
